@@ -7,11 +7,11 @@ from PIL import Image
 from datetime import datetime
 
     # icones
-imagem_de_salvar = ctk.CTkImage(dark_image= Image.open('./icone_salvar.png'), light_image= Image.open('./icone_salvar.png'), size=(30, 30))
-imagem_de_cadastrar = ctk.CTkImage(dark_image= Image.open('./icone_cadastrar.png'), light_image= Image.open('./icone_cadastrar.png'), size=(30, 30))
-imagem_de_editar = ctk.CTkImage(dark_image= Image.open('./icone_editar.png'), light_image= Image.open('./icone_editar.png'), size=(30, 30))
-imagem_de_listar = ctk.CTkImage(dark_image= Image.open('./icone_listar.png'), light_image= Image.open('./icone_listar.png'), size=(30, 30))
-imagem_de_iniciar = ctk.CTkImage(dark_image= Image.open('./icone_iniciar.png'), light_image= Image.open('./icone_iniciar.png'), size=(30, 30))
+imagem_de_salvar = ctk.CTkImage(dark_image=Image.open('icones\\icone_salvar.png'), light_image=Image.open('icones\\icone_salvar.png'), size=(30, 30))
+imagem_de_cadastrar = ctk.CTkImage(dark_image=Image.open('icones\\icone_cadastrar.png'), light_image=Image.open('icones\\icone_cadastrar.png'), size=(30, 30))
+imagem_de_editar = ctk.CTkImage(dark_image=Image.open('icones\\icone_editar.png'), light_image=Image.open('icones\\icone_editar.png'), size=(30, 30))
+imagem_de_listar = ctk.CTkImage(dark_image=Image.open('icones\\icone_listar.png'), light_image=Image.open('icones\\icone_listar.png'), size=(30, 30))
+imagem_de_iniciar = ctk.CTkImage(dark_image=Image.open('icones\\icone_iniciar.png'), light_image=Image.open('icones\\icone_iniciar.png'), size=(30, 30))
 
 #logica de autocompletar, apenas aparece abaixo da label, e nao da pra clicar
 class AutocompleteEntry_produtos(CTkEntry):
@@ -142,7 +142,7 @@ class AutocompleteEntry_vendas(CTkEntry):
         conn = sqlite3.connect('produtos.db')
         cursor = conn.cursor()
         cursor.execute("SELECT nome_produto FROM Vendas WHERE nome_produto LIKE ?", ('%' + entrada + '%',))
-        vendas = [venda[3] for venda in cursor.fetchall()]
+        vendas = [venda[0] for venda in cursor.fetchall()]  # Ajustado para acessar o índice 0 (nome_produto)
         conn.close()
         return vendas
 
@@ -883,6 +883,7 @@ def cadastrar_venda():
             nome_produto = entry_nome_produto.get()
             nome_cliente = entry_nome_cliente.get()
             preco_venda = float(entry_preco_venda.get())
+            data_venda = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
             if not quantidade_vendida or not nome_produto or not nome_cliente or not preco_venda:
                 mostrar_erro("Erro de Validação", "Por favor, preencha todos os campos corretamente.")
@@ -890,7 +891,7 @@ def cadastrar_venda():
 
             Vendas.criar_tabela_vendas()
 
-            Vendas.criar_venda(quantidade_vendida, nome_produto, nome_cliente, preco_venda)
+            Vendas.criar_venda(quantidade_vendida, nome_produto, nome_cliente, preco_venda, data_venda)
 
             mostrar_mensagem("Cadastro de Venda", f"Venda do produto '{nome_produto}' cadastrada com sucesso!")
             cadastro_venda.destroy()
@@ -909,7 +910,7 @@ def cadastrar_venda():
 def editar_venda():
     editar_venda_janela = ctk.CTk(fg_color='darkgray')
     editar_venda_janela.title("Editar Venda")
-    editar_venda_janela.geometry("400x450")
+    editar_venda_janela.geometry("400x500")  # Aumentei a altura para acomodar o novo botão
 
     label_nome_produto = ctk.CTkLabel(editar_venda_janela, text="Nome do Produto:", text_color='black')
     label_nome_produto.pack()
@@ -1008,6 +1009,25 @@ def editar_venda():
 
         janela_exclusao.mainloop()
 
+    def reverter_venda():
+        try:
+            nome_produto = entry_nome_produto.get().strip().lower()
+
+            venda = Vendas.buscar_venda_por_nome_produto(nome_produto)
+            if not venda:
+                mostrar_erro("Venda não encontrada", f"Venda com produto '{nome_produto}' não encontrada.")
+                return
+
+            quantidade_vendida = venda[1]  # A quantidade vendida está no índice 1
+
+            # Reverte a venda (atualiza quantidade do produto e exclui a venda)
+            Vendas.reverter_venda(venda[0], nome_produto, quantidade_vendida)
+            mostrar_mensagem("Venda Revertida", f"Venda do produto '{nome_produto}' foi revertida com sucesso!")
+            editar_venda_janela.destroy()
+
+        except Exception as e:
+            mostrar_erro("Erro ao reverter venda", f"Erro: {str(e)}")
+
     button_buscar = ctk.CTkButton(editar_venda_janela, text="Buscar Venda",
                                   text_color='black',
                                   fg_color="#5D3EBC", border_color='#ECF0F1',
@@ -1025,6 +1045,12 @@ def editar_venda():
                                    fg_color="#5D3EBC", border_color='#ECF0F1',
                                    hover_color='white', command=confirmar_exclusao)
     button_excluir.pack(pady=10)
+
+    button_reverter = ctk.CTkButton(editar_venda_janela, text="Reverter Venda",
+                                    text_color='black',
+                                    fg_color="#5D3EBC", border_color='#ECF0F1',
+                                    hover_color='white', command=reverter_venda)
+    button_reverter.pack(pady=10)  # Adicionando o botão de reverter venda
 
     editar_venda_janela.mainloop()
 

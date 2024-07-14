@@ -196,19 +196,64 @@ class Vendas:
             return venda
 
     @staticmethod
-    def atualizar_venda(id_venda, quantidade_vendida, nome_produto, nome_cliente, preco_venda, data_venda):
+    def atualizar_venda(id_venda, nova_quantidade_vendida, nome_produto, nome_cliente, preco_venda, nova_data_venda=None):
         with Vendas.conectar_bd() as conn:
             cursor = conn.cursor()
-            if data_venda is None:
+
+            # Buscar a quantidade original vendida para a venda com id_venda
+            cursor.execute('SELECT quantidade_vendida, nome_produto FROM Vendas WHERE id_venda = ?', (id_venda,))
+            resultado = cursor.fetchone()
+
+            if not resultado:
+                raise ValueError(f'Venda com id {id_venda} não encontrada.')
+
+            quantidade_original = resultado[0]
+            produto_vendido = resultado[1]
+
+            # Verificar se a nova quantidade vendida é maior que a original
+            if nova_quantidade_vendida > quantidade_original:
+                # Verificar se há estoque suficiente para aumentar a quantidade vendida
+                cursor.execute('SELECT quantidade FROM Produtos WHERE nome_produto = ?', (produto_vendido,))
+                resultado_produto = cursor.fetchone()
+
+                if not resultado_produto or resultado_produto[0] < (nova_quantidade_vendida - quantidade_original):
+                    raise ValueError(f'Não há estoque suficiente para aumentar a venda para {nova_quantidade_vendida} unidades.')
+
+            # Atualizar a venda na tabela Vendas
+            if nova_data_venda is None:
                 cursor.execute('''
                     UPDATE Vendas SET quantidade_vendida = ?, nome_produto = ?, nome_cliente = ?, preco_venda = ?
                     WHERE id_venda = ?
-                ''', (quantidade_vendida, nome_produto, nome_cliente, preco_venda, id_venda))
+                ''', (nova_quantidade_vendida, nome_produto, nome_cliente, preco_venda, id_venda))
             else:
                 cursor.execute('''
                     UPDATE Vendas SET quantidade_vendida = ?, nome_produto = ?, nome_cliente = ?, preco_venda = ?, data_venda = ?
                     WHERE id_venda = ?
-                ''', (quantidade_vendida, nome_produto, nome_cliente, preco_venda, data_venda, id_venda))
+                ''', (nova_quantidade_vendida, nome_produto, nome_cliente, preco_venda, nova_data_venda, id_venda))
+
+            # Se a nova quantidade vendida for menor que a original, adicionar a diferença ao estoque
+            if nova_quantidade_vendida < quantidade_original:
+                cursor.execute('UPDATE Produtos SET quantidade = quantidade + ? WHERE nome_produto = ?', 
+                            (quantidade_original - nova_quantidade_vendida, produto_vendido))
+
+            # Se a nova quantidade vendida for maior que a original, diminuir a diferença do estoque
+            elif nova_quantidade_vendida > quantidade_original:
+                cursor.execute('UPDATE Produtos SET quantidade = quantidade - ? WHERE nome_produto = ?', 
+                            (nova_quantidade_vendida - quantidade_original, produto_vendido))
+
+            conn.commit()
+
+    @staticmethod
+    def reverter_venda(id_venda, nome_produto, quantidade_vendida):
+        with Vendas.conectar_bd() as conn:
+            cursor = conn.cursor()
+
+            # Atualiza a quantidade de produtos
+            cursor.execute('UPDATE Produtos SET quantidade = quantidade + ? WHERE nome_produto = ?', (quantidade_vendida, nome_produto))
+
+            # Exclui a venda
+            cursor.execute('DELETE FROM Vendas WHERE id_venda = ?', (id_venda,))
+            
             conn.commit()
 
     @staticmethod
