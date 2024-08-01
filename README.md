@@ -33,7 +33,7 @@ Na terceira imagem tenho a janela editar produtos, onde eu adicionei uma logica 
 ## Back end
 - Todo em Python
 ## Front end
-- Foi utilizada as bibliotecas em Python: Customtkinter e CTKMessagebox
+- Foram utilizadas as bibliotecas em Python: Sqlite3, Json, Pil, DateTime, Customtkinter e CTKMessagebox
 
 # Autor
 
