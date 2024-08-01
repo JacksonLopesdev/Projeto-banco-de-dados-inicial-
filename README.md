@@ -13,6 +13,12 @@ Em layout abas, apresento a primeira aba produtos, com mais 3 sendo: Clientes, F
 Na segunda imagem tenho a janela cadastro de produtos, todas as labels indicando ao usuario o que deve ser inserido e com tratamento de erros acertivos até o momento.
 Na terceira imagem tenho a janela editar produtos, onde eu adicionei uma logica de buscar e auto complete em nome, caso haja produtos no banco de dados, e também podem ser feitas exclusões de produtos por essa janela, o produto buscado vai ser preenchido devidamente com sua quantidade e outras informações, o usuario pode manipular os dados a sua vontade na propria interface, sem necessidade de query.
 
+## Layout tela de Login
+![login](https://github.com/JacksonLopesdev/Assets/blob/master/Projeto%20banco%20de%20dados/tela%20de%20login%20inicial.jpg)
+
+## Layout tela de cadastro 
+![cadastro](https://github.com/JacksonLopesdev/Assets/blob/master/Projeto%20banco%20de%20dados/tela%20de%20cadastro.jpg)
+
 ## Layout tela de apresentação
 ![Tela1](https://github.com/JacksonLopesdev/Assets/blob/master/Projeto%20banco%20de%20dados/Tela%20de%20apresentacao.jpg)
 
