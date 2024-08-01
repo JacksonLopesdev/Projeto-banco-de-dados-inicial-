@@ -31,9 +31,9 @@ Na terceira imagem tenho a janela editar produtos, onde eu adicionei uma logica 
 
 # Tecnologias utilizadas
 ## Back end
-- Todo em Python
+- Todo em Python, sqlite3, Json, Datetime.
 ## Front end
-- Foram utilizadas as bibliotecas em Python: Sqlite3, Json, Pil, DateTime, Customtkinter e CTKMessagebox
+- Foram utilizadas as bibliotecas em Python: Pil, Customtkinter e CTKMessagebox
 
 # Autor
 
