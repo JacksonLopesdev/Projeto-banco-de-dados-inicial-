@@ -1,10 +1,12 @@
 import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
-from main import Produtos, Vendas, Clientes, Fornecedor
+import os
+import json
 import sqlite3
 from customtkinter import CTkEntry, CTkLabel
 from PIL import Image
 from datetime import datetime
+from main import Produtos, Vendas, Clientes, Fornecedor
 
     # icones
 imagem_de_salvar = ctk.CTkImage(dark_image=Image.open('icones\\icone_salvar.png'), light_image=Image.open('icones\\icone_salvar.png'), size=(30, 30))
@@ -157,6 +159,46 @@ class AutocompleteEntry_vendas(CTkEntry):
     def fechar_autocomplete(self, event=None):
         if self.autocomplete_label:
             self.autocomplete_label.destroy()
+
+#funcoes de usuario e senha
+def inicializar_usuarios():
+    caminho_arquivo = 'usuarios.json'
+    if not os.path.exists(caminho_arquivo):
+        dados_usuarios = {'admin': 'admin123'}
+        with open(caminho_arquivo, 'w') as arquivo:
+            json.dump(dados_usuarios, arquivo)
+
+
+def adicionar_usuario(usuario, senha):
+    if not usuario.strip() or not senha.strip():
+        mostrar_erro(mensagem="Usuário e senha não podem estar em branco.", titulo='Erro de autenticação')
+        return
+
+    caminho_arquivo = 'usuarios.json'
+
+    if os.path.exists(caminho_arquivo):
+        with open(caminho_arquivo, 'r') as arquivo:
+            dados_usuarios = json.load(arquivo)
+    else:
+        dados_usuarios = {}
+
+    if usuario in dados_usuarios:
+        mostrar_mensagem(titulo="Usuário já existe.", mensagem='Tente criar outro usuário')
+        return
+
+    dados_usuarios[usuario] = senha
+
+    with open(caminho_arquivo, 'w') as arquivo:
+        json.dump(dados_usuarios, arquivo, indent=4) 
+
+
+def verificar_usuario(usuario, senha):
+    caminho_arquivo = 'usuarios.json'
+    if os.path.exists(caminho_arquivo):
+        with open(caminho_arquivo, 'r') as arquivo:
+            dados_usuarios = json.load(arquivo)
+        return dados_usuarios.get(usuario) == senha
+    return False
 
 # mensagem de sucesso
 def mostrar_mensagem(titulo, mensagem):
@@ -1089,124 +1131,239 @@ def listar_vendas():
 
     listar_vendas_janela.mainloop()
 
-# interface e botoes das tabs, parte principal da interface
+# Funções de navegação
+def mostrar_login():
+    pagina_login.pack(fill="both", expand=True)
+    pagina_inicial.pack_forget()
+    pagina_cadastro.pack_forget()
+    pagina_produtos.pack_forget()
+
+
+def mostrar_pagina_inicial():
+    pagina_inicial.pack(fill="both", expand=True)
+    pagina_login.pack_forget()
+    pagina_cadastro.pack_forget()
+    pagina_produtos.pack_forget()
+
+
+def mostrar_pagina_cadastro():
+    pagina_cadastro.pack(fill="both", expand=True)
+    pagina_inicial.pack_forget()
+    pagina_login.pack_forget()
+    pagina_produtos.pack_forget()
+
+
+def mostrar_pagina_produtos():
+    pagina_produtos.pack(fill="both", expand=True)
+    pagina_inicial.pack_forget()
+    pagina_login.pack_forget()
+    pagina_cadastro.pack_forget()
+
+
+def voltar_login():
+    mostrar_login()
+
+
+def login_usuario():
+    usuario = entrada_usuario.get()
+    senha = entrada_senha.get()
+    if verificar_usuario(usuario, senha):
+        mostrar_pagina_inicial()
+    else:
+        mostrar_erro(mensagem = 'Digite um usuario e senha existentes', titulo = ('erro de autenticacao'))
+
+
+def cadastrar_usuario():
+    usuario = entrada_usuario_cadastro.get()
+    senha = entrada_senha_cadastro.get()
+    confirmar_senha = entrada_confirmar_senha.get()
+
+    # Verifica se os campos de usuário e senha não estão vazios
+    if not usuario.strip() or not senha.strip():
+        mostrar_erro(mensagem='Favor digitar um usuário e senha válidos', titulo='Usuário e senha em branco')
+        return  # Sai da função para evitar que o código continue
+
+    # Verifica se as senhas coincidem
+    if senha != confirmar_senha:
+        mostrar_erro(mensagem='Senhas não coincidem', titulo='Senhas não equivalentes')
+        return  # Sai da função para evitar que o código continue
+
+    # Se todas as validações passarem, adiciona o usuário
+    adicionar_usuario(usuario, senha)
+    mostrar_mensagem(mensagem='Usuário e senha cadastrados com sucesso', titulo='Tudo certo')
+
+
 def main():
+    global pagina_inicial, pagina_login, pagina_cadastro, pagina_produtos
+    global entrada_usuario, entrada_senha, entrada_usuario_cadastro, entrada_senha_cadastro, entrada_confirmar_senha
+
+    inicializar_usuarios()
+
     janela = ctk.CTk()
     janela.title("Sistema de Gerenciamento de Vendas e Cadastro de Clientes")
     janela.geometry("800x600")  # Tamanho maior para a janela principal
-    pagina_inicial = ctk.CTkFrame(janela, fg_color= 'darkgray')
 
-    def exibir_pagina_inicial():
-        pagina_inicial.pack(fill="both", expand=True)
+    # Tela de Login
+    pagina_login = ctk.CTkFrame(janela, fg_color='darkgray')
+    label_login = ctk.CTkLabel(pagina_login, text="Tela de Login", text_color='black', font=("Arial", 18, "bold"))
+    label_login.pack(pady=20)
 
-    def esconder_pagina_inicial():
-        pagina_inicial.pack_forget()
+    usuario_label = ctk.CTkLabel(pagina_login, text="Usuário:", text_color='black', font=("Arial", 14))
+    usuario_label.pack(pady=5)
 
-        tabview = ctk.CTkTabview(janela, corner_radius= 20, border_width=5, width= 4,
-                                 fg_color= "darkgray", border_color= '#5D3EBC', text_color= 'black',
-                                 segmented_button_selected_color='#5D3EBC', segmented_button_unselected_color= 'darkgray',
-                                 segmented_button_unselected_hover_color='white')
-        
-        tabview.pack(side= 'left', expand=True, fill= 'both' , padx=20, pady=20)  
-        aba_produtos = tabview.add("Produtos")
+    entrada_usuario = ctk.CTkEntry(pagina_login, placeholder_text="Digite seu usuário", width=300)
+    entrada_usuario.pack(pady=5)
 
-        botao1_produtos = ctk.CTkButton(aba_produtos, text="Cadastrar Produto", text_color= "black", fg_color= "#5D3EBC", 
-                                        border_color= '#ECF0F1', hover_color= 'white',
-                                         image= imagem_de_cadastrar, font=("Arial", 17, "bold"), width=60, height=60,
-                                command=cadastrar_produto)
-        botao1_produtos.place(relx=0.2, rely=0.2, anchor="center")
+    senha_label = ctk.CTkLabel(pagina_login, text="Senha:", text_color='black', font=("Arial", 14))
+    senha_label.pack(pady=5)
 
-        botao2_produtos = ctk.CTkButton(aba_produtos, text="Editar Produto", text_color= "black", fg_color= "#5D3EBC",
-                                        border_color= '#ECF0F1', hover_color= 'white',
-                                         image= imagem_de_editar, font=("Arial", 17, "bold"), width=60, height=60,
-                                        command=editar_produto)
-        botao2_produtos.place(relx=0.5, rely=0.2, anchor="center")
+    entrada_senha = ctk.CTkEntry(pagina_login, placeholder_text="Digite sua senha", show="*", width=300)
+    entrada_senha.pack(pady=5)
 
-        botao3_produtos = ctk.CTkButton(aba_produtos, text="Listar Produtos", text_color= "black", fg_color= "#5D3EBC",
-                                        border_color= '#ECF0F1', hover_color= 'white',
-                                         image= imagem_de_listar, font=("Arial", 17, "bold"), width=60, height=60,
-                                        command=listar_produtos)
-        botao3_produtos.place(relx=0.8, rely=0.2, anchor="center")
+    botao_login = ctk.CTkButton(pagina_login, text="Login", text_color="black", fg_color="#5D3EBC",
+                                border_color='#ECF0F1', hover_color='white', font=("Arial", 16, "bold"),
+                                command=login_usuario)
+    botao_login.pack(pady=10)
 
-        aba_clientes = tabview.add("Clientes")
+    botao_cadastrar = ctk.CTkButton(pagina_login, text="Cadastrar", text_color="black", fg_color="#5D3EBC",
+                                    border_color='#ECF0F1', hover_color='white', font=("Arial", 16, "bold"),
+                                    command=mostrar_pagina_cadastro)
+    botao_cadastrar.pack(pady=10)
 
-        botao1_clientes = ctk.CTkButton(aba_clientes, text="Cadastrar Cliente", text_color= "black", fg_color= "#5D3EBC", 
-                                        border_color= '#ECF0F1', hover_color= 'white',
-                                         image= imagem_de_cadastrar, font=("Arial", 17, "bold"), width=60, height=60,
-                                command=cadastrar_cliente)
-        botao1_clientes.place(relx=0.2, rely=0.2, anchor="center")
-
-        botao2_clientes = ctk.CTkButton(aba_clientes, text="Editar Clientes", text_color= "black", fg_color= "#5D3EBC",
-                                        border_color= '#ECF0F1', hover_color= 'white',
-                                         image= imagem_de_editar, font=("Arial", 17, "bold"), width=60, height=60,
-                                        command=editar_cliente)
-        botao2_clientes.place(relx=0.5, rely=0.2, anchor="center")
-
-        botao3_clientes = ctk.CTkButton(aba_clientes, text="Listar Clientes", text_color= "black", fg_color= "#5D3EBC",
-                                        border_color= '#ECF0F1', hover_color= 'white',
-                                         image= imagem_de_listar, font=("Arial", 17, "bold"), width=60, height=60,
-                                        command=listar_clientes)
-        botao3_clientes.place(relx=0.8, rely=0.2, anchor="center")
-
-        aba_fornecedores = tabview.add("Fornecedores")
-
-        botao1_fornecedores = ctk.CTkButton(aba_fornecedores, text="Cadastrar Fornecedor", text_color= "black", fg_color= "#5D3EBC", 
-                                        border_color= '#ECF0F1', hover_color= 'white',
-                                         image= imagem_de_cadastrar, font=("Arial", 17, "bold"), width=60, height=60,
-                                command=cadastrar_fornecedor)
-        botao1_fornecedores.place(relx=0.2, rely=0.2, anchor="center")
-
-        botao2_fornecedores = ctk.CTkButton(aba_fornecedores, text="Editar Fornecedor", text_color= "black", fg_color= "#5D3EBC", 
-                                        border_color= '#ECF0F1', hover_color= 'white',
-                                         image= imagem_de_editar, font=("Arial", 17, "bold"), width=60, height=60,
-                                command=editar_fornecedor)
-        botao2_fornecedores.place(relx=0.5, rely=0.2, anchor="center")
-
-        botao3_fornecedores = ctk.CTkButton(aba_fornecedores, text="Listar Fornecedores", text_color= "black", fg_color= "#5D3EBC",
-                                        border_color= '#ECF0F1', hover_color= 'white',
-                                         image= imagem_de_listar, font=("Arial", 17, "bold"), width=60, height=60,
-                                        command=listar_fornecedores)
-        botao3_fornecedores.place(relx=0.8, rely=0.2, anchor="center")
-
-        aba_vendas = tabview.add("Vendas")
-
-        botao1_vendas = ctk.CTkButton(aba_vendas, text="Cadastrar Venda", text_color= "black", fg_color= "#5D3EBC", 
-                                        border_color= '#ECF0F1', hover_color= 'white',
-                                         image= imagem_de_cadastrar, font=("Arial", 17, "bold"), width=60, height=60,
-                                command=cadastrar_venda)
-        botao1_vendas.place(relx=0.2, rely=0.2, anchor="center")
-
-        botao2_vendas = ctk.CTkButton(aba_vendas, text="Editar Venda", text_color= "black", fg_color= "#5D3EBC", 
-                                        border_color= '#ECF0F1', hover_color= 'white',
-                                         image= imagem_de_editar, font=("Arial", 17, "bold"), width=60, height=60,
-                                command=editar_venda)
-        botao2_vendas.place(relx=0.5, rely=0.2, anchor="center")
-
-        botao3_vendas = ctk.CTkButton(aba_vendas, text="Listar Vendas", text_color= "black", fg_color= "#5D3EBC",
-                                        border_color= '#ECF0F1', hover_color= 'white',
-                                         image= imagem_de_listar, font=("Arial", 17, "bold"), width=60, height=60,
-                                        command=listar_vendas)
-        botao3_vendas.place(relx=0.8, rely=0.2, anchor="center")
-
-    
-    label_boas_vindas = ctk.CTkLabel(pagina_inicial, text=f"Boas vindas:\nPrograma de gerenciamento e cadastro de produtos, clientes, fornecedores e vendas\ncriado por Jackson Lopes",
-                                     text_color= 'black', font=("Arial", 18, "bold"), justify="center")
+    # Tela Inicial
+    pagina_inicial = ctk.CTkFrame(janela, fg_color='darkgray')
+    label_boas_vindas = ctk.CTkLabel(pagina_inicial, text="Boas vindas:\nPrograma de gerenciamento e cadastro de produtos, clientes, fornecedores e vendas\ncriado por Jackson Lopes",
+                                     text_color='black', font=("Arial", 18, "bold"), justify="center")
     label_boas_vindas.pack(pady=100)
 
-    botao_iniciar = ctk.CTkButton(pagina_inicial, text="Iniciar Programa",
-                                  text_color= "black", fg_color= "#5D3EBC",
-                                  border_color= '#ECF0F1', hover_color= 'white',
-                                  image= imagem_de_iniciar, font=("Arial", 16, "bold"),
-                                  width=40, height=40, command=esconder_pagina_inicial)
+    botao_iniciar = ctk.CTkButton(pagina_inicial, text="Iniciar Programa", text_color="black", fg_color="#5D3EBC",
+                                  border_color='#ECF0F1', hover_color='white', font=("Arial", 16, "bold"),
+                                  command=mostrar_pagina_produtos)
     botao_iniciar.pack()
 
-    # Mostra a página inicial ao iniciar o programa
-    exibir_pagina_inicial()
+    # Tela de Cadastro
+    pagina_cadastro = ctk.CTkFrame(janela, fg_color='darkgray')
+    label_cadastro = ctk.CTkLabel(pagina_cadastro, text="Tela de Cadastro", text_color='black', font=("Arial", 18, "bold"))
+    label_cadastro.pack(pady=20)
+
+    usuario_cadastro_label = ctk.CTkLabel(pagina_cadastro, text="Usuário:", text_color='black', font=("Arial", 14))
+    usuario_cadastro_label.pack(pady=5)
+
+    entrada_usuario_cadastro = ctk.CTkEntry(pagina_cadastro, placeholder_text="Digite seu usuário", width=300)
+    entrada_usuario_cadastro.pack(pady=5)
+
+    senha_cadastro_label = ctk.CTkLabel(pagina_cadastro, text="Senha:", text_color='black', font=("Arial", 14))
+    senha_cadastro_label.pack(pady=5)
+
+    entrada_senha_cadastro = ctk.CTkEntry(pagina_cadastro, placeholder_text="Digite sua senha", show="*", width=300)
+    entrada_senha_cadastro.pack(pady=5)
+
+    confirmar_senha_label = ctk.CTkLabel(pagina_cadastro, text="Confirmar Senha:", text_color='black', font=("Arial", 14))
+    confirmar_senha_label.pack(pady=5)
+
+    entrada_confirmar_senha = ctk.CTkEntry(pagina_cadastro, placeholder_text="Confirme sua senha", show="*", width=300)
+    entrada_confirmar_senha.pack(pady=5)
+
+    botao_cadastrar = ctk.CTkButton(pagina_cadastro, text="Cadastrar", text_color="black", fg_color="#5D3EBC",
+                                    border_color='#ECF0F1', hover_color='white', font=("Arial", 16, "bold"),
+                                    command=cadastrar_usuario)
+    botao_cadastrar.pack(pady=10)
+
+    botao_voltar_login = ctk.CTkButton(pagina_cadastro, text="Voltar para Login", text_color="black", fg_color="#5D3EBC",
+                                       border_color='#ECF0F1', hover_color='white', font=("Arial", 16, "bold"),
+                                       command=voltar_login)
+    botao_voltar_login.pack(pady=10)
+
+    # Tela de Produtos
+    pagina_produtos = ctk.CTkFrame(janela, fg_color='darkgray')
+
+    tabview = ctk.CTkTabview(pagina_produtos, corner_radius=20, border_width=5, width=4,
+                             fg_color="darkgray", border_color='#5D3EBC', text_color='black',
+                             segmented_button_selected_color='#5D3EBC', segmented_button_unselected_color='darkgray',
+                             segmented_button_unselected_hover_color='white')
+    tabview.pack(side='left', expand=True, fill='both', padx=20, pady=20)
+    
+    aba_produtos = tabview.add("Produtos")
+    botao1_produtos = ctk.CTkButton(aba_produtos, text="Cadastrar Produto", text_color="black", fg_color="#5D3EBC",
+                                    border_color='#ECF0F1', hover_color='white', font=("Arial", 17, "bold"),
+                                    image = imagem_de_cadastrar, width=60, height=60,
+                                    command=cadastrar_produto)
+    botao1_produtos.place(relx=0.2, rely=0.2, anchor="center")
+
+    botao2_produtos = ctk.CTkButton(aba_produtos, text="Editar Produto", text_color="black", fg_color="#5D3EBC",
+                                    border_color='#ECF0F1', hover_color='white', font=("Arial", 17, "bold"),
+                                    image = imagem_de_editar, width=60, height=60,
+                                    command=editar_produto)
+    botao2_produtos.place(relx=0.5, rely=0.2, anchor="center")
+
+    botao3_produtos = ctk.CTkButton(aba_produtos, text="Listar Produtos", text_color="black", fg_color="#5D3EBC",
+                                    border_color='#ECF0F1', hover_color='white', font=("Arial", 17, "bold"),
+                                    image = imagem_de_listar, width=60, height=60,
+                                    command=listar_produtos)
+    botao3_produtos.place(relx=0.8, rely=0.2, anchor="center")
+
+    aba_clientes = tabview.add("Clientes")
+    botao1_clientes = ctk.CTkButton(aba_clientes, text="Cadastrar Cliente", text_color="black", fg_color="#5D3EBC",
+                                    border_color='#ECF0F1', hover_color='white', font=("Arial", 17, "bold"),
+                                    image = imagem_de_cadastrar, width=60, height=60,
+                                    command=cadastrar_cliente)
+    botao1_clientes.place(relx=0.2, rely=0.2, anchor="center")
+
+    botao2_clientes = ctk.CTkButton(aba_clientes, text="Editar Cliente", text_color="black", fg_color="#5D3EBC",
+                                    border_color='#ECF0F1', hover_color='white', font=("Arial", 17, "bold"),
+                                    image = imagem_de_editar, width=60, height=60,
+                                    command=editar_cliente)
+    botao2_clientes.place(relx=0.5, rely=0.2, anchor="center")
+
+    botao3_clientes = ctk.CTkButton(aba_clientes, text="Listar Clientes", text_color="black", fg_color="#5D3EBC",
+                                    border_color='#ECF0F1', hover_color='white', font=("Arial", 17, "bold"),
+                                    image = imagem_de_listar, width=60, height=60,
+                                    command=listar_clientes)
+    botao3_clientes.place(relx=0.8, rely=0.2, anchor="center")
+
+    aba_fornecedores = tabview.add("Fornecedores")
+    botao1_fornecedores = ctk.CTkButton(aba_fornecedores, text="Cadastrar Fornecedor", text_color="black", fg_color="#5D3EBC",
+                                        border_color='#ECF0F1', hover_color='white', font=("Arial", 17, "bold"),
+                                        image = imagem_de_cadastrar, width=60, height=60,
+                                        command=cadastrar_fornecedor)
+    botao1_fornecedores.place(relx=0.2, rely=0.2, anchor="center")
+
+    botao2_fornecedores = ctk.CTkButton(aba_fornecedores, text="Editar Fornecedor", text_color="black", fg_color="#5D3EBC",
+                                        border_color='#ECF0F1', hover_color='white', font=("Arial", 17, "bold"),
+                                        image = imagem_de_editar, width=60, height=60,
+                                        command=editar_fornecedor)
+    botao2_fornecedores.place(relx=0.5, rely=0.2, anchor="center")
+
+    botao3_fornecedores = ctk.CTkButton(aba_fornecedores, text="Listar Fornecedores", text_color="black", fg_color="#5D3EBC",
+                                        border_color='#ECF0F1', hover_color='white', font=("Arial", 17, "bold"),
+                                        image = imagem_de_listar, width=60, height=60,
+                                        command=listar_fornecedores)
+    botao3_fornecedores.place(relx=0.8, rely=0.2, anchor="center")
+
+    aba_vendas = tabview.add("Vendas")
+    botao1_vendas = ctk.CTkButton(aba_vendas, text="Cadastrar Venda", text_color="black", fg_color="#5D3EBC",
+                                  border_color='#ECF0F1', hover_color='white', font=("Arial", 17, "bold"),
+                                  image = imagem_de_cadastrar, width=60, height=60,
+                                  command=cadastrar_venda)
+    botao1_vendas.place(relx=0.2, rely=0.2, anchor="center")
+
+    botao2_vendas = ctk.CTkButton(aba_vendas, text="Editar Venda", text_color="black", fg_color="#5D3EBC",
+                                  border_color='#ECF0F1', hover_color='white', font=("Arial", 17, "bold"),
+                                  image = imagem_de_editar, width=60, height=60,
+                                  command=editar_venda)
+    botao2_vendas.place(relx=0.5, rely=0.2, anchor="center")
+
+    botao3_vendas = ctk.CTkButton(aba_vendas, text="Listar Vendas", text_color="black", fg_color="#5D3EBC",
+                                  border_color='#ECF0F1', hover_color='white', font=("Arial", 17, "bold"),
+                                  image = imagem_de_listar, width=60, height=60,
+                                  command=listar_vendas)
+    botao3_vendas.place(relx=0.8, rely=0.2, anchor="center")
+
+    # Mostra a tela de login ao iniciar o programa
+    mostrar_login()
 
     # Inicia o loop de eventos
     janela.mainloop()
 
-
 if __name__ == "__main__":
     main()
-
