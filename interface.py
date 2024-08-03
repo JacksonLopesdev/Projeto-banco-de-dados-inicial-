@@ -8,7 +8,9 @@ from PIL import Image
 from datetime import datetime
 from main import Produtos, Vendas, Clientes, Fornecedor
 
-    # icones
+    # iconea
+olho_aberto = ctk.CTkImage(dark_image=Image.open('icones\\olho_aberto.png'), light_image=Image.open('icones\\olho_aberto.png'), size=(15, 15))
+olho_fechado = ctk.CTkImage(dark_image=Image.open('icones\\olho_fechado.png'), light_image=Image.open('icones\\olho_fechado.png'), size=(15, 15))
 imagem_de_salvar = ctk.CTkImage(dark_image=Image.open('icones\\icone_salvar.png'), light_image=Image.open('icones\\icone_salvar.png'), size=(30, 30))
 imagem_de_cadastrar = ctk.CTkImage(dark_image=Image.open('icones\\icone_cadastrar.png'), light_image=Image.open('icones\\icone_cadastrar.png'), size=(30, 30))
 imagem_de_editar = ctk.CTkImage(dark_image=Image.open('icones\\icone_editar.png'), light_image=Image.open('icones\\icone_editar.png'), size=(30, 30))
@@ -164,7 +166,7 @@ class AutocompleteEntry_vendas(CTkEntry):
 def inicializar_usuarios():
     caminho_arquivo = 'usuarios.json'
     if not os.path.exists(caminho_arquivo):
-        dados_usuarios = {'admin': 'admin123'}
+        dados_usuarios = {'jackson': 'jA2308930410'}
         with open(caminho_arquivo, 'w') as arquivo:
             json.dump(dados_usuarios, arquivo)
 
@@ -1172,6 +1174,15 @@ def login_usuario():
     else:
         mostrar_erro(mensagem = 'Digite um usuario e senha existentes', titulo = ('erro de autenticacao'))
 
+#funcao para alternar icone do botao e mostrar senha.
+def alternar_senha():
+    if entrada_senha.cget('show') == '*':
+        entrada_senha.configure(show='')  
+        botao_mostrar_senha.configure(image=olho_aberto)  
+    else:
+        entrada_senha.configure(show='*')  
+        botao_mostrar_senha.configure(image=olho_fechado)
+
 
 def cadastrar_usuario():
     usuario = entrada_usuario_cadastro.get()
@@ -1194,7 +1205,7 @@ def cadastrar_usuario():
 
 
 def main():
-    global pagina_inicial, pagina_login, pagina_cadastro, pagina_produtos
+    global pagina_inicial, pagina_login, pagina_cadastro, pagina_produtos, botao_mostrar_senha
     global entrada_usuario, entrada_senha, entrada_usuario_cadastro, entrada_senha_cadastro, entrada_confirmar_senha
 
     inicializar_usuarios()
@@ -1219,6 +1230,10 @@ def main():
 
     entrada_senha = ctk.CTkEntry(pagina_login, placeholder_text="Digite sua senha", show="*", width=300)
     entrada_senha.pack(pady=5)
+
+    botao_mostrar_senha = ctk.CTkButton(pagina_login, text="", image=olho_fechado, fg_color="#5D3EBC", width=40,
+                                   border_color='#ECF0F1', hover_color='white', command=alternar_senha)
+    botao_mostrar_senha.pack(pady=3)
 
     botao_login = ctk.CTkButton(pagina_login, text="Login", text_color="black", fg_color="#5D3EBC",
                                 border_color='#ECF0F1', hover_color='white', font=("Arial", 16, "bold"),
